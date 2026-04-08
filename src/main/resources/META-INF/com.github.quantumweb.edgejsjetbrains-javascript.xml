@@ -1,0 +1,15 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <multiHostInjector
+                implementation="com.github.quantumweb.edgejsjetbrains.edge.injection.EdgeJavaScriptInjector"/>
+        <psi.referenceContributor
+                language="JavaScript"
+                implementation="com.github.quantumweb.edgejsjetbrains.edge.references.EdgeInjectedReferenceContributor"/>
+        <psi.referenceContributor
+                language="TypeScript"
+                implementation="com.github.quantumweb.edgejsjetbrains.edge.references.EdgeInjectedReferenceContributor"/>
+        <psi.referenceContributor
+                language="ECMAScript 6"
+                implementation="com.github.quantumweb.edgejsjetbrains.edge.references.EdgeInjectedReferenceContributor"/>
+    </extensions>
+</idea-plugin>

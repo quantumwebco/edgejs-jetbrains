@@ -1,0 +1,41 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>com.github.quantumweb.edgejsjetbrains</id>
+    <name>EdgeJS</name>
+    <vendor>quantumweb</vendor>
+
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.xml</depends>
+    <depends optional="true" config-file="com.github.quantumweb.edgejsjetbrains-javascript.xml">JavaScript</depends>
+
+    <resource-bundle>messages.MyBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType
+                name="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.EdgeFileType"
+                fieldName="INSTANCE"
+                language="Edge"
+                extensions="edge"/>
+        <fileTypeOverrider implementation="com.github.quantumweb.edgejsjetbrains.edge.EdgeFileTypeOverrider"/>
+        <lang.parserDefinition
+                language="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.psi.EdgeParserDefinition"/>
+        <lang.ast.factory
+                language="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.psi.EdgeAstFactory"/>
+        <lang.fileViewProviderFactory
+                language="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.psi.EdgeFileViewProviderFactory"/>
+        <lang.syntaxHighlighter
+                language="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.highlighting.EdgeSyntaxHighlighter"/>
+        <psi.referenceContributor
+                language="Edge"
+                implementation="com.github.quantumweb.edgejsjetbrains.edge.references.EdgeReferenceContributor"/>
+        <editorHighlighterProvider
+                filetype="Edge"
+                implementationClass="com.github.quantumweb.edgejsjetbrains.edge.highlighting.EdgeTemplateHighlighterProvider"/>
+    </extensions>
+
+</idea-plugin>
