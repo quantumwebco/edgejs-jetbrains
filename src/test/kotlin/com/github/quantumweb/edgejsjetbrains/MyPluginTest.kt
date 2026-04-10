@@ -14,6 +14,7 @@ import com.intellij.codeInsight.TargetElementUtil
 import com.intellij.ide.highlighter.HtmlFileType
 import com.intellij.lang.injection.MultiHostInjector
 import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -134,6 +135,33 @@ class MyPluginTest : BasePlatformTestCase() {
         assertTrue(dumpHighlightTokens(file.text, highlighter, 0), iterator.textAttributesKeys.isNotEmpty())
     }
 
+    fun testEditorHighlighterDoesNotSplitLeadingDirectiveArgumentIdentifiers() {
+        val directives = listOf(
+            "@if(stepErrors.clann_member)" to "stepErrors",
+            "@let(stepErrors = errors ?? {})" to "stepErrors",
+            "@each(message in stepErrors.clann_member)" to "message",
+        )
+
+        for ((source, identifier) in directives) {
+            val file = myFixture.configureByText(EdgeFileType, source)
+            val highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(project, file.virtualFile)
+            highlighter.setText(file.text)
+            val identifierStart = file.text.indexOf(identifier)
+            val identifierEnd = identifierStart + identifier.length
+            val tokens = collectHighlightTokens(file.text, highlighter)
+            val overlappingTokens = tokens.filter { it.end > identifierStart && it.start < identifierEnd }
+
+            assertTrue(dumpHighlightTokens(file.text, highlighter, 0), overlappingTokens.isNotEmpty())
+            assertEquals(dumpHighlightTokens(file.text, highlighter, 0), identifierStart, overlappingTokens.first().start)
+            assertEquals(dumpHighlightTokens(file.text, highlighter, 0), identifierEnd, overlappingTokens.last().end)
+            assertEquals(
+                dumpHighlightTokens(file.text, highlighter, 0),
+                listOf(identifier),
+                overlappingTokens.map { file.text.substring(it.start, it.end) },
+            )
+        }
+    }
+
     fun testJavaScriptFileHighlighterTokenDump() {
         val expression = "${'$'}props.get('route')\nclasses = [activeClass]"
         val jsFile = myFixture.configureByText("sample.js", expression)
@@ -164,6 +192,51 @@ class MyPluginTest : BasePlatformTestCase() {
         if (hasJavaScriptLanguage) {
             assertTrue(injectors.any { it.javaClass.name == "com.github.quantumweb.edgejsjetbrains.edge.injection.EdgeJavaScriptInjector" })
         }
+    }
+
+    fun testDirectiveArgumentInjectionMapsLeadingIdentifierStartToInjectedCode() {
+        val hasJavaScriptLanguage = com.intellij.lang.Language.findLanguageByID("JavaScript") != null
+        if (!hasJavaScriptLanguage) return
+
+        val file = myFixture.configureByText(EdgeFileType, "@if(stepErrors.clann_member)")
+        val hostOffset = file.text.indexOf("stepErrors")
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+
+        val hostElement = myFixture.file.viewProvider.getPsi(EdgeLanguage)?.findElementAt(hostOffset)
+        val injectedFile = hostElement
+            ?.let { InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(it) }
+            ?.firstOrNull()
+            ?.first
+            ?.containingFile
+
+        assertNotNull(injectedFile)
+
+        val documentWindow = PsiDocumentManager.getInstance(project).getDocument(injectedFile!!) as? com.intellij.injected.editor.DocumentWindow
+        assertNotNull(documentWindow)
+
+        val injectedOffset = documentWindow!!.hostToInjected(hostOffset)
+        assertTrue(injectedOffset >= 0)
+        assertEquals("stepErrors.clann_member", injectedFile.text)
+        assertEquals(injectedFile.text, 's', injectedFile.text[injectedOffset])
+    }
+
+    fun testDirectiveArgumentInjectionWrapsLeadingObjectLiteral() {
+        val hasJavaScriptLanguage = com.intellij.lang.Language.findLanguageByID("JavaScript") != null
+        if (!hasJavaScriptLanguage) return
+
+        val file = myFixture.configureByText(EdgeFileType, "@let({ size: 'large' })")
+        val hostOffset = file.text.indexOf('{')
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+
+        val hostElement = myFixture.file.viewProvider.getPsi(EdgeLanguage)?.findElementAt(hostOffset)
+        val injectedFile = hostElement
+            ?.let { InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(it) }
+            ?.firstOrNull()
+            ?.first
+            ?.containingFile
+
+        assertNotNull(injectedFile)
+        assertEquals("({ size: 'large' })", injectedFile!!.text)
     }
 
     fun testInlineDirectiveIsRecognizedAwayFromLineStart() {
@@ -438,4 +511,31 @@ class MyPluginTest : BasePlatformTestCase() {
         }
         return tokens.joinToString(" ")
     }
+
+    private fun collectHighlightTokens(
+        text: String,
+        highlighter: com.intellij.openapi.editor.highlighter.EditorHighlighter,
+    ): List<HighlightToken> {
+        val iterator = highlighter.createIterator(0)
+        val tokens = mutableListOf<HighlightToken>()
+
+        while (!iterator.atEnd()) {
+            tokens += HighlightToken(
+                start = iterator.start,
+                end = iterator.end,
+                text = text.substring(iterator.start, iterator.end),
+                textAttributesKeys = iterator.textAttributesKeys.toList(),
+            )
+            iterator.advance()
+        }
+
+        return tokens
+    }
+
+    private data class HighlightToken(
+        val start: Int,
+        val end: Int,
+        val text: String,
+        val textAttributesKeys: List<TextAttributesKey>,
+    )
 }

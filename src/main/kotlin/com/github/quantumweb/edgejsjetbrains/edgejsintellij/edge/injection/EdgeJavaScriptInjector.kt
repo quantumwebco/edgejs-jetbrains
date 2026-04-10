@@ -72,8 +72,9 @@ class EdgeJavaScriptInjector : MultiHostInjector {
 
         registrar.startInjecting(language)
         for ((index, range) in ranges.withIndex()) {
-            val prefix = if (index == 0) "edgeDirective(" else null
-            val suffix = if (index == ranges.lastIndex) ")" else null
+            val needsWrapper = index == 0 && host.text.substring(range.startOffset, range.endOffset).trimStart().startsWith("{")
+            val prefix = if (needsWrapper) "(" else null
+            val suffix = if (needsWrapper && index == ranges.lastIndex) ")" else null
             registrar.addPlace(prefix, suffix, host, range)
         }
         registrar.doneInjecting()
