@@ -8,6 +8,9 @@
 ### Added
 - Added a dedicated file icon for `.edge` templates.
 
+### Fixed
+- Fixed directive argument highlighting so leading identifiers in directives like `@if(...)`, `@let(...)`, and `@each(...)` no longer render their first character with a different color.
+
 ## [0.0.1] - 2026-04-08
 ### Added
 - Initial public release of `edgejs-jetbrains` for JetBrains IDEs.
