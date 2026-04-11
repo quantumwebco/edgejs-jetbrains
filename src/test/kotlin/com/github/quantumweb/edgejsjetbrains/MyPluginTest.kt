@@ -216,7 +216,7 @@ class MyPluginTest : BasePlatformTestCase() {
 
         val injectedOffset = documentWindow!!.hostToInjected(hostOffset)
         assertTrue(injectedOffset >= 0)
-        assertEquals("stepErrors.clann_member", injectedFile.text)
+        assertEquals("(function(){})(stepErrors.clann_member)", injectedFile.text)
         assertEquals(injectedFile.text, 's', injectedFile.text[injectedOffset])
     }
 
@@ -236,7 +236,32 @@ class MyPluginTest : BasePlatformTestCase() {
             ?.containingFile
 
         assertNotNull(injectedFile)
-        assertEquals("({ size: 'large' })", injectedFile!!.text)
+        assertEquals("(function(){})({ size: 'large' })", injectedFile!!.text)
+    }
+
+    fun testDirectiveArgumentInjectionWrapsMultipleArgumentsAsCallArguments() {
+        val hasJavaScriptLanguage = com.intellij.lang.Language.findLanguageByID("JavaScript") != null
+        if (!hasJavaScriptLanguage) return
+
+        val file = myFixture.configureByText(
+            EdgeFileType,
+            "@svg('material-symbols-light:dark-mode-outline', { class: 'text-clann-slate-400' })",
+        )
+        val hostOffset = file.text.indexOf("material-symbols-light")
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+
+        val hostElement = myFixture.file.viewProvider.getPsi(EdgeLanguage)?.findElementAt(hostOffset)
+        val injectedFile = hostElement
+            ?.let { InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(it) }
+            ?.firstOrNull()
+            ?.first
+            ?.containingFile
+
+        assertNotNull(injectedFile)
+        assertEquals(
+            "(function(){})('material-symbols-light:dark-mode-outline', { class: 'text-clann-slate-400' })",
+            injectedFile!!.text,
+        )
     }
 
     fun testInlineDirectiveIsRecognizedAwayFromLineStart() {

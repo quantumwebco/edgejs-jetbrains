@@ -44,7 +44,7 @@ class EdgeJavaScriptInjector : MultiHostInjector {
         val closeParen = findMatchingClosingParen(text, openParen) ?: return emptyList()
         if (openParen + 1 >= closeParen) return emptyList()
 
-        return listOf(TextRange(openParen + 1, closeParen))
+        return listOf(TextRange(openParen, closeParen + 1))
     }
 
     private fun injectRanges(
@@ -72,9 +72,10 @@ class EdgeJavaScriptInjector : MultiHostInjector {
 
         registrar.startInjecting(language)
         for ((index, range) in ranges.withIndex()) {
-            val needsWrapper = index == 0 && host.text.substring(range.startOffset, range.endOffset).trimStart().startsWith("{")
-            val prefix = if (needsWrapper) "(" else null
-            val suffix = if (needsWrapper && index == ranges.lastIndex) ")" else null
+            // Anchor the synthetic wrapper to the real `(` token so the prefix does not share the
+            // first argument character's host offset while still parsing commas as call arguments.
+            val prefix = if (index == 0) "(function(){})" else null
+            val suffix = null
             registrar.addPlace(prefix, suffix, host, range)
         }
         registrar.doneInjecting()
