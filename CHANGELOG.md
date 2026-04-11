@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-04-11
+### Changed
+- Replaced the Edge file icon with the new SVG artwork and packaged the same icon as the plugin logo for Marketplace and the IDE plugins panel.
+
 ## [0.0.3] - 2026-04-11
 ### Fixed
 - Fixed JavaScript injection for Edge directives with multiple arguments, so commas are treated as argument separators instead of the JavaScript comma operator.
